@@ -356,5 +356,22 @@ def main():
     return 0
 
 
+def loop(minutes, every=4):
+    """Check repeatedly for `minutes`, so we don't depend on GitHub's (often late) schedule."""
+    end = time.time() + minutes * 60
+    code = 0
+    while True:
+        try:
+            code = main()
+        except Exception as e:
+            log(f"Check failed ({e}). Will retry.")
+            code = 1
+        if time.time() + every * 60 > end:
+            return code
+        time.sleep(every * 60)
+
+
 if __name__ == "__main__":
+    if "--loop" in sys.argv:
+        sys.exit(loop(float(sys.argv[sys.argv.index("--loop") + 1])))
     sys.exit(main())
