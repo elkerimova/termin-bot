@@ -1,0 +1,46 @@
+name: Check for earlier Termin
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # every 5 minutes (GitHub sometimes runs it a bit later)
+  workflow_dispatch:         # lets you start it by hand from the Actions tab
+    inputs:
+      test:
+        description: "Send a test message to Telegram"
+        type: boolean
+        default: true
+
+concurrency:
+  group: termin-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore memory of already-announced slots
+        uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: termin-state-${{ github.run_id }}
+          restore-keys: termin-state-
+
+      - name: Check
+        env:
+          TERMIN_LINK: ${{ secrets.TERMIN_LINK }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BEFORE: ${{ vars.BEFORE }}
+          AFTER: ${{ vars.AFTER }}
+          API_URL: ${{ vars.API_URL }}
+        run: mkdir -p state && python3 check.py ${{ (github.event_name == 'workflow_dispatch' && inputs.test) && '--test' || '' }}
+
+      - name: Save memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: termin-state-${{ github.run_id }}
