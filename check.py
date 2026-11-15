@@ -251,9 +251,17 @@ def find_chat_id(state):
     cid = os.environ.get("TELEGRAM_CHAT_ID", "").strip() or state.get("chat_id")
     if cid:
         return cid
+    me = tg_call("getMe", {}).get("result", {})
+    hook = tg_call("getWebhookInfo", {}).get("result", {})
     updates = tg_call("getUpdates", {}).get("result", [])
+    log(f"Telegram: token belongs to @{me.get('username')}; webhook set: {bool(hook.get('url'))}; "
+        f"waiting messages: {len(updates)} {[k for u in updates for k in u if k != 'update_id']}")
+    if hook.get("url"):
+        tg_call("deleteWebhook", {})
+        updates = tg_call("getUpdates", {}).get("result", [])
     for u in reversed(updates):
-        msg = u.get("message") or u.get("edited_message") or {}
+        msg = (u.get("message") or u.get("edited_message") or u.get("my_chat_member")
+               or u.get("callback_query", {}).get("message") or {})
         if msg.get("chat", {}).get("id"):
             state["chat_id"] = str(msg["chat"]["id"])
             return state["chat_id"]
