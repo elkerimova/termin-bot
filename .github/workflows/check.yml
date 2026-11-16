@@ -2,7 +2,7 @@ name: Check for earlier Termin
 
 on:
   schedule:
-    - cron: "*/30 * * * *"  # each run keeps checking every 4 min for ~50 min
+    - cron: "*/30 * * * *"  # each run checks every 4 min for ~5h40m; the next run waits in line, so there are no gaps
   workflow_dispatch:         # lets you start it by hand from the Actions tab
     inputs:
       test:
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +36,7 @@ jobs:
           BEFORE: ${{ vars.BEFORE }}
           AFTER: ${{ vars.AFTER }}
           API_URL: ${{ vars.API_URL }}
-        run: mkdir -p state && python3 check.py ${{ (github.event_name == 'workflow_dispatch' && inputs.test) && '--test' || '--loop 50' }}
+        run: mkdir -p state && python3 check.py ${{ (github.event_name == 'workflow_dispatch' && inputs.test) && '--test' || '--loop 340' }}
 
       - name: Save memory
         if: always()
